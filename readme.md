@@ -1,9 +1,19 @@
-`````bash
+## 1. Backend Setup
+
+### A. Installation and Building
+
+```bash
+cd backend
+
+```
+
+```bash
 npm install
+```
 
-````bash
+```bash
 npm run build
-
+```
 
 ### B. Configuration
 
@@ -19,7 +29,7 @@ Start the backend server using the following command:
 
 ```bash
 npm run start
-
+```
 
 The server should now be running and accessible at `http://localhost:8080`.
 
@@ -35,20 +45,22 @@ Navigate to the `frontend` directory and install dependencies, then build the pr
 
 ```bash
 cd frontend
+```
 
 ```bash
 npm install
+```
 
 ```bash
 npm run build
-
+```
 
 ### B. Configuration
 
 The frontend also requires environment variables, typically to point to the backend server URL.
 
 1.  Navigate to the `frontend` directory.
-2.  Locate the sample environment file (e.g., `.env.example`, `.env.development.local`, or similar, depending on your framework).
+2.  Locate the sample environment file (e.g., `.env.example`).
 3.  Create or update the appropriate environment file (usually **`.env`**) in the `frontend` directory and ensure the necessary variables are correctly set.
 
 ### C. Running the Client
@@ -57,7 +69,7 @@ Start the frontend development server using the following command:
 
 ```bash
 npm run start
-
+```
 
 The application should now be running and accessible in your browser at `http://localhost:3000`.
 
@@ -67,8 +79,7 @@ The application should now be running and accessible in your browser at `http://
 
 Two dataset files are provided in the root directory for testing data ingestion and functionality:
 
-* `data.csv`
-* `data.xlsx`
+- `data.csv`
+- `data.xlsx`
 
 You may use these files to test endpoints related to data upload and processing.
-`````
