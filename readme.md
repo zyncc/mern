@@ -11,11 +11,21 @@ cd backend
 npm install
 ```
 
+### B. Database Setup
+
+```bash
+npm run db:generate
+```
+
+```bash
+npm run db:push
+```
+
 ```bash
 npm run build
 ```
 
-### B. Configuration
+### C. Configuration
 
 The server requires environment variables to run.
 
@@ -23,7 +33,7 @@ The server requires environment variables to run.
 2.  Create a new file named **`.env`** in the same `backend` directory.
 3.  Copy the contents of **`.env.example`** into your new **`.env`** file and update the variables as needed.
 
-### C. Running the Server
+### D. Running the Server
 
 Start the backend server using the following command:
 
