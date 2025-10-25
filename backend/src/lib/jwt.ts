@@ -23,7 +23,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
     return payload;
   } catch (error) {
-    console.error("Invalid token:", error);
+    console.error("Invalid JWT token");
     return null;
   }
 }
