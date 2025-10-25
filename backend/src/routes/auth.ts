@@ -1,10 +1,12 @@
 import { Router } from "express";
-import { signin, signup } from "../controllers/auth.controller";
+import { getSession, signin, signup } from "../controllers/auth.controller";
 
-const router = Router()
+const router = Router();
 
-router.post("/signup", (req, res) => signup(req, res))
+router.post("/signup", signup);
 
-router.post("/signin", (req, res) => signin(req, res))
+router.post("/signin", signin);
 
-export default router
+router.get("/get-session", getSession);
+
+export default router;

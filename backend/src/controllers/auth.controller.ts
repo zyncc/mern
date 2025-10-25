@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { signInSchema, signupSchema } from "../lib/types";
 import prisma from "../db/prisma";
 import bcrypt from "bcrypt";
-import { generateToken } from "../lib/jwt";
+import { generateToken, verifyToken } from "../lib/jwt";
 
 export async function signup(req: Request, res: Response) {
   try {
@@ -85,9 +85,25 @@ export async function signin(req: Request, res: Response) {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
       })
       .json({ success: true, message: "User signed in successfully" });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+}
+
+export async function getSession(req: Request, res: Response) {
+  try {
+    const token = req.headers.authorization;
+    if (!token) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const decodedToken = await verifyToken(token);
+    return res.status(200).json({ success: true, data: decodedToken });
   } catch (error) {
     console.error(error);
     return res

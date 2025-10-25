@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../db/prisma";
 import { agentSchema } from "../lib/types";
 import bcrypt from "bcrypt";
-import { Readable } from "stream";
-import csv from "csv-parser";
+import * as XLSX from "xlsx";
 
 export async function CreateAgent(req: Request, res: Response) {
   try {
@@ -74,48 +73,35 @@ export async function ProcessList(req: Request, res: Response) {
         .status(400)
         .json({ success: false, error: "Invalid file type" });
     }
+
+    const workbook = XLSX.read(file.buffer, { type: "buffer" });
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    const data: CSVData[] = XLSX.utils.sheet_to_json(sheet);
+
+    if (!data.length) {
+      return res
+        .status(400)
+        .json({ success: false, error: "No data found in file." });
+    }
+
     const EXPECTED_HEADERS = ["FirstName", "Phone", "Notes"];
+    const actualHeaders = Object.keys(data[0]);
+    const missingHeaders = EXPECTED_HEADERS.filter(
+      (header) => !actualHeaders.includes(header)
+    );
 
-    const buffer = file.buffer;
-    const readableCSVStream = Readable.from(buffer.toString());
-    const results: CSVData[] = [];
-    let headersValidated = false;
-    let headersError: string | null = null;
-
-    const csvStream = readableCSVStream.pipe(csv());
-
-    csvStream
-      .on("headers", (headers) => {
-        const actualHeaders = headers.map((h: string) => h.trim());
-
-        const missingHeaders = EXPECTED_HEADERS.filter(
-          (expectedHeader) => !actualHeaders.includes(expectedHeader)
-        );
-
-        if (missingHeaders.length > 0) {
-          headersError = `CSV file is missing required columns`;
-          csvStream.destroy();
-          return res.status(400).json({ success: false, error: headersError });
-        } else {
-          headersValidated = true;
-        }
-      })
-      .on("data", (data) => {
-        if (headersValidated) {
-          results.push(data);
-        }
-      })
-      .on("error", (err) => {
-        console.error("CSV Parsing Error:", err);
-        return res
-          .status(500)
-          .json({ success: false, error: "Error parsing CSV file." });
+    if (missingHeaders.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Missing required columns: ${missingHeaders.join(", ")}`,
       });
+    }
 
     const agents = await prisma.agent.findMany({
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
 
     if (agents.length === 0) {
@@ -127,7 +113,7 @@ export async function ProcessList(req: Request, res: Response) {
     const distribution: Record<string, CSVData[]> = {};
     agents.forEach((agent) => (distribution[agent.id] = []));
 
-    results.forEach((task, index) => {
+    data.forEach((task, index) => {
       const agentIndex = index % agents.length;
       const agentId = agents[agentIndex].id;
       distribution[agentId].push(task);
@@ -139,7 +125,7 @@ export async function ProcessList(req: Request, res: Response) {
         await prisma.tasks.createMany({
           data: tasks.map((t) => ({
             firstName: t.FirstName,
-            phone: t.Phone,
+            phone: String(t.Phone),
             notes: t.Notes,
             agentId,
           })),
@@ -147,8 +133,70 @@ export async function ProcessList(req: Request, res: Response) {
       }
     }
 
-    return res.status(200).json({ success: true, data: results });
+    return res
+      .status(200)
+      .json({ success: true, message: "Tasks created successfully" });
   } catch (error) {
+    console.error("File Processing Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+}
+
+export async function GetAgents(req: Request, res: Response) {
+  try {
+    const agents = await prisma.agent.findMany({
+      omit: {
+        password: true,
+      },
+    });
+    return res.status(200).json({ success: true, data: agents });
+  } catch (error) {
+    console.error("Get Agents Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+}
+
+export async function GetTasks(req: Request, res: Response) {
+  try {
+    const tasks = await prisma.tasks.findMany({
+      include: {
+        agent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+    return res.status(200).json({ success: true, data: tasks });
+  } catch (error) {
+    console.error("Get Tasks Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+}
+
+export async function GetTasksByAgent(req: Request, res: Response) {
+  try {
+    const agentId = req.params.agentId;
+    if (!agentId) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Agent ID is required" });
+    }
+    const tasks = await prisma.tasks.findMany({
+      where: {
+        agentId: agentId,
+      },
+    });
+    return res.status(200).json({ success: true, data: tasks });
+  } catch (error) {
+    console.error("Get Tasks Error:", error);
     return res
       .status(500)
       .json({ success: false, error: "Internal server error" });
